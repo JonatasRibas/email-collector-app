@@ -1,31 +1,35 @@
 const express = require('express')
 const session = require('express-session')
+const bodyParser = require('body-parser')
+const path = require('path')
 const app = express()
 const PORT = process.env.PORT || 3000
 
-app.use(express.urlencoded({ extended: true }))
-app.use(express.static('public'))
+app.use(express.static(path.join(__dirname, 'public')))
+app.use(bodyParser.urlencoded({ extended: true }))
 app.use(
   session({ secret: 'mysecret', resave: false, saveUninitialized: false })
 )
 
 app.get('/', (req, res) => {
-  if (req.session.emailSent === undefined) {
-    req.session.emailSent = false
-  }
-
-  res.sendFile(__dirname + '/public/index.html')
+  res.render('index', { emailSent: req.session.emailSent })
 })
 
 app.post('/submit', (req, res) => {
   const email = req.body.email
-  console.log('Email recebido:', email)
 
-  req.session.emailSent = true
-
-  res.redirect('/')
+  if (isValidEmail(email)) {
+    req.session.emailSent = true
+    res.redirect('/')
+  } else {
+    res.status(400).send('Endereço de e-mail inválido.')
+  }
 })
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`)
 })
+
+function isValidEmail(email) {
+  return /\S+@\S+\.\S+/.test(email)
+}
